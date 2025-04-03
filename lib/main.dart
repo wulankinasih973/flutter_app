@@ -1,6 +1,8 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MyApp());
@@ -27,9 +29,22 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
+
+  Future<void> getNext() async {
+    try {
+      final response = await http.get(Uri.parse('https://random-word-api.herokuapp.com/word'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          current = WordPair(data[0], 'app');
+          notifyListeners();
+        }
+      } else {
+        throw Exception('Gagal mengambil kata');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
   }
 
   var favorites = <WordPair>[];
@@ -117,7 +132,7 @@ class GeneratorPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           BigCard(pair: pair),
-          SizedBox(height: 10),
+          SizedBox(height: 6),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -128,7 +143,7 @@ class GeneratorPage extends StatelessWidget {
                 icon: Icon(icon),
                 label: Text('Like'),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 6),
               ElevatedButton(
                 onPressed: () {
                   appState.getNext();
